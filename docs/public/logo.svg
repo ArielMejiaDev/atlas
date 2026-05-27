@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="260" height="260">
+  <defs>
+    <linearGradient id="globe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Globe body -->
+  <circle cx="60" cy="60" r="44" fill="url(#globe)" opacity="0.12"/>
+  <circle cx="60" cy="60" r="44" fill="none" stroke="url(#globe)" stroke-width="2.5"/>
+
+  <!-- Latitude lines -->
+  <ellipse cx="60" cy="42" rx="36" ry="8" fill="none" stroke="#6366f1" stroke-width="1.2" opacity="0.45"/>
+  <ellipse cx="60" cy="60" rx="40" ry="10" fill="none" stroke="#6366f1" stroke-width="1.2" opacity="0.45"/>
+  <ellipse cx="60" cy="78" rx="36" ry="8" fill="none" stroke="#6366f1" stroke-width="1.2" opacity="0.45"/>
+
+  <!-- Longitude arcs -->
+  <ellipse cx="60" cy="60" rx="10" ry="40" fill="none" stroke="#6366f1" stroke-width="1.2" opacity="0.45"/>
+  <ellipse cx="60" cy="60" rx="28" ry="42" fill="none" stroke="#6366f1" stroke-width="1.2" opacity="0.45"/>
+
+  <!-- Map pin -->
+  <g transform="translate(72, 28)">
+    <path d="M0 0 C-8 0 -14 6 -14 14 C-14 24 0 36 0 36 C0 36 14 24 14 14 C14 6 8 0 0 0 Z"
+          fill="url(#pin)" stroke="#c2410c" stroke-width="1"/>
+    <circle cx="0" cy="13" r="5.5" fill="white" opacity="0.9"/>
+  </g>
+
+  <!-- Pin shadow -->
+  <ellipse cx="72" cy="68" rx="6" ry="2" fill="#4f46e5" opacity="0.15"/>
+</svg>

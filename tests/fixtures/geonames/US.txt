@@ -1,0 +1,5 @@
+US	68815	Broken Bow	Nebraska	NE	Custer	031			41.4019	-99.6393	4
+US	10001	New York	New York	NY	New York	061			40.7484	-73.9967	4
+US	90210	Beverly Hills	California	CA	Los Angeles	037			34.0901	-118.4065	4
+US	33101	Miami	Florida	FL	Miami-Dade	086			25.7743	-80.1937	4
+US	60601	Chicago	Illinois	IL	Cook	031			41.8819	-87.6278	4

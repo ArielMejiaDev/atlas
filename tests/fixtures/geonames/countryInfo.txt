@@ -1,0 +1,11 @@
+#ISO	ISO3	ISO-Numeric	fips	Country	Capital	Area(in sq km)	Population	Continent	tld	CurrencyCode	CurrencyName	Phone	Postal Code Format	Postal Code Regex	Languages	geonameid	neighbours	EquivalentFipsCode
+AR	ARG	032	AR	Argentina	Buenos Aires	2766890	44938712	SA	.ar	ARS	Peso	54	@####@@@	^([A-Z]\\d{4}[A-Z{3})$	es-AR	3865483	CL,BO,UY,PY,BR
+BR	BRA	076	BR	Brazil	Brasilia	8511965	209469333	SA	.br	BRL	Real	55	#####-###	^(\\d{8})$	pt-BR	3469034	UY,GY,SR,GF,VE,CO,PE,BO,PY,AR
+DE	DEU	276	GM	Germany	Berlin	357021	82927922	EU	.de	EUR	Euro	49	#####	^(\\d{5})$	de	2921044	CH,PL,NL,DK,BE,CZ,AT,FR,LU
+FR	FRA	250	FR	France	Paris	547030	66987244	EU	.fr	EUR	Euro	33	#####	^(\\d{5})$	fr-FR	3017382	CH,DE,BE,LU,IT,AD,MC,ES
+IN	IND	356	IN	India	New Delhi	3287590	1352617328	AS	.in	INR	Rupee	91	######	^(\\d{6})$	en-IN,hi	1269750	CN,NP,MM,BT,PK,BD
+JP	JPN	392	JA	Japan	Tokyo	377835	126529100	AS	.jp	JPY	Yen	81	###-####	^(\\d{7})$	ja	1861060
+KH	KHM	116	CB	Cambodia	Phnom Penh	181040	16245729	AS	.kh	KHR	Riels	855		^(\\d{5})$	km	1831722	LA,TH,VN
+MY	MYS	458	MY	Malaysia	Kuala Lumpur	329750	31528585	AS	.my	MYR	Ringgit	60	#####	^(\\d{5})$	ms-MY	1733045	BN,TH,ID
+US	USA	840	US	United States	Washington	9629091	327167434	NA	.us	USD	Dollar	1	#####-####	^\\d{5}(-\\d{4})?$	en-US	6252001	CA,MX,CU
+GB	GBR	826	UK	United Kingdom	London	244820	66488991	EU	.uk	GBP	Pound	44	@# #@@|@## #@@|@@# #@@|@@## #@@|@#@ #@@|@@#@ #@@|GIR0AA	^(([A-Z]\\d{2}[A-Z]{2})|([A-Z]\\d{3}[A-Z]{2})|([A-Z]{2}\\d{2}[A-Z]{2})|([A-Z]{2}\\d{3}[A-Z]{2})|([A-Z]\\d[A-Z]\\d[A-Z]{2})|([A-Z]{2}\\d[A-Z]\\d[A-Z]{2})|(GIR0AA))$	en-GB	2635167	IE

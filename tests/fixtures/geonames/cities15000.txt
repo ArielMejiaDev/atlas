@@ -1,0 +1,10 @@
+3435910	Buenos Aires	Buenos Aires	Buenos Aires,Baires	-34.61315	-58.37723	P	PPLC	AR		07				15024000	25	31	America/Argentina/Buenos_Aires	2024-01-01
+1735161	Kuala Lumpur	Kuala Lumpur	KL,Kuala Lumpur	3.1412	101.68653	P	PPLC	MY		14				1768000	22	56	Asia/Kuala_Lumpur	2024-01-01
+2988507	Paris	Paris	Paris,Paree,Parizh	48.85341	2.3488	P	PPLC	FR		11				2138551	42	75	Europe/Paris	2024-01-01
+1821306	Phnom Penh	Phnom Penh	Phnom Penh,Pnom Pen	11.56245	104.91601	P	PPLC	KH		22				1573544	11	12	Asia/Phnom_Penh	2024-01-01
+1275339	Mumbai	Mumbai	Mumbai,Bombay,Mumbay	19.07283	72.88261	P	PPL	IN		16				12691836	14	8	Asia/Kolkata	2024-01-01
+5128581	New York City	New York City	NYC,New York,Nueva York	40.71427	-74.00597	P	PPL	US		NY				8804190	10	57	America/New_York	2024-01-01
+2950159	Berlin	Berlin	Berlin,Berlijn	52.52437	13.41053	P	PPLC	DE		16				3748148	34	74	Europe/Berlin	2024-01-01
+1850147	Tokyo	Tokyo	Tokyo,Tokio,東京	35.6895	139.69171	P	PPLC	JP		40				8336599	40	17	Asia/Tokyo	2024-01-01
+3451190	Rio de Janeiro	Rio de Janeiro	Rio,Rio de Janeiro	-22.90642	-43.17284	P	PPLA	BR		21				6023699	11	2	America/Sao_Paulo	2024-01-01
+3448439	São Paulo	São Paulo	Sao Paulo,São Paulo	-23.5475	-46.63611	P	PPLA	BR		27				11253503	760	769	America/Sao_Paulo	2024-01-01

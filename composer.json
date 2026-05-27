@@ -1,0 +1,74 @@
+{
+    "name": "arielmejiadev/atlas",
+    "description": "Offline geocoder for Laravel — fills latitude/longitude from a bundled SQLite database, no API calls.",
+    "keywords": [
+        "ArielMejiaDev",
+        "laravel",
+        "atlas",
+        "geocoder",
+        "offline"
+    ],
+    "homepage": "https://github.com/arielmejiadev/atlas",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "ArielMejiaDev",
+            "email": "arielmejiadev@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "ext-pdo_sqlite": "*",
+        "ext-zip": "*",
+        "ext-curl": "*",
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "illuminate/database": "^12.0|^13.0",
+        "illuminate/console": "^12.0|^13.0",
+        "illuminate/http": "^12.0|^13.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.14",
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0"
+    },
+    "suggest": {
+        "ext-intl": "Better Unicode transliteration in the Normalizer"
+    },
+    "autoload": {
+        "psr-4": {
+            "ArielMejiaDev\\Atlas\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ArielMejiaDev\\Atlas\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ArielMejiaDev\\Atlas\\AtlasServiceProvider"
+            ],
+            "aliases": {
+                "Atlas": "ArielMejiaDev\\Atlas\\Facades\\Atlas"
+            }
+        }
+    },
+    "minimum-stability": "stable"
+}
