@@ -4,6 +4,8 @@
 
 Fills `latitude` and `longitude` on any Eloquent model from a bundled SQLite database of world cities and US ZIP codes. **No API keys, no rate limits, no network calls at runtime.**
 
+**[Read the full documentation](https://arielmejia.dev/atlas-docs/)**
+
 > **Precision note:** Atlas provides centroid-level precision (city/ZIP center), not street-level geocoding. It's ideal for analytics, clustering, and approximate distance calculations.
 
 ## Installation
