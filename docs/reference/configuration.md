@@ -28,7 +28,7 @@ return [
 
     // Listener configuration for auto-geocoding records.
     'listener' => [
-        'enabled' => false,           // Set to true to auto-geocode
+        'enabled' => env('ATLAS_LISTENER_ENABLED', false),
 
         // Model classes to auto-geocode.
         // Each must use the HasCoordinates trait.

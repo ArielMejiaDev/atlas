@@ -116,6 +116,20 @@ class GeocodeListener
 }
 ```
 
+## Disabling the Listener in Tests
+
+The listener is controlled by the `ATLAS_LISTENER_ENABLED` environment variable. To turn it off during tests, add the following to your `phpunit.xml`:
+
+```xml
+<phpunit>
+    <php>
+        <env name="ATLAS_LISTENER_ENABLED" value="false"/>
+    </php>
+</phpunit>
+```
+
+This prevents Atlas from dispatching geocoding jobs while your test suite runs.
+
 ## Alternative: Manual Observer
 
 If you prefer more control, skip the built-in listener and wire your own Observer:
