@@ -6,6 +6,8 @@ Atlas is a Laravel package that fills `latitude` and `longitude` on any Eloquent
 
 Atlas ships a PHP-only database builder that downloads public data from [GeoNames](https://www.geonames.org/) and compiles it into a ~22 MB SQLite file. At runtime, the geocoder queries this local database to resolve addresses into coordinates.
 
+Coordinates are stored in a **package-owned polymorphic table** (`atlas_coordinates`), so your models don't need latitude/longitude columns. Any model can opt in by adding the `HasCoordinates` trait — each model defines its own column mapping independently.
+
 The geocoding engine is **framework-agnostic** — it depends only on PDO and a shared `Normalizer` class. A thin Laravel service provider wires everything together: the database connection, the facade, and the Artisan commands.
 
 ## What It Is
@@ -26,13 +28,12 @@ The geocoding engine is **framework-agnostic** — it depends only on PDO and a 
 ┌─────────────────────────────────────────────┐
 │  Host Laravel App                           │
 │                                             │
-│  Atlas::geocode([...])                      │
-│       │                                     │
-│       ▼                                     │
-│  ┌──────────────────────┐                   │
-│  │  AtlasServiceProvider │ ← Laravel layer  │
-│  │  (PDO + config)       │                  │
-│  └──────────┬───────────┘                   │
+│  ┌─────────────────────────┐                │
+│  │  Any Model              │                │
+│  │  use HasCoordinates;    │                │
+│  │  → geocodableColumns()  │                │
+│  └──────────┬──────────────┘                │
+│             │ $model->geocode()             │
 │             ▼                               │
 │  ┌──────────────────────┐                   │
 │  │  OfflineGeocoder      │ ← Pure PHP       │
@@ -42,6 +43,11 @@ The geocoding engine is **framework-agnostic** — it depends only on PDO and a 
 │  ┌──────────────────────┐                   │
 │  │  geocoding.sqlite     │ ← Built once     │
 │  │  (~22 MB)             │   via artisan     │
+│  └──────────┬───────────┘                   │
+│             ▼                               │
+│  ┌──────────────────────┐                   │
+│  │  atlas_coordinates    │ ← Polymorphic    │
+│  │  (package table)      │   per model      │
 │  └──────────────────────┘                   │
 └─────────────────────────────────────────────┘
 ```

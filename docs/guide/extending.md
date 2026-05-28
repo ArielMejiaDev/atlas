@@ -99,6 +99,31 @@ $this->app->singleton(Normalizer::class, CustomNormalizer::class);
 If you customize the normalizer, you must rebuild the database so that the `name_norm` values in SQLite match your runtime normalization. The builder uses the same `Normalizer` class.
 :::
 
+## Customizing the Column Mapping
+
+Each model controls its own mapping. For advanced use cases, you can override `toGeocodableArray()` to pull data from relationships, accessors, or external sources:
+
+```php
+class Order extends Model
+{
+    use HasCoordinates;
+
+    public function toGeocodableArray(): array
+    {
+        // Pull address from a related model
+        $shipping = $this->shippingAddress;
+
+        return [
+            'address' => $shipping?->line_1 ?? '',
+            'city'    => $shipping?->city ?? '',
+            'state'   => $shipping?->state ?? '',
+            'zip'     => $shipping?->postal_code ?? '',
+            'country' => $shipping?->country ?? '',
+        ];
+    }
+}
+```
+
 ## Listening to Geocode Events
 
 Subscribe to `AddressGeocoded` to run side effects:

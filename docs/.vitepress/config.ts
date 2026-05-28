@@ -31,6 +31,7 @@ export default defineConfig({
           items: [
             { text: 'What is Atlas?', link: '/guide/what-is-atlas' },
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Basic Usage', link: '/guide/basic-usage' },
           ],
         },
         {

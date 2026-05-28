@@ -5,6 +5,7 @@ namespace ArielMejiaDev\Atlas;
 use ArielMejiaDev\Atlas\Console\BackfillCommand;
 use ArielMejiaDev\Atlas\Console\InstallCommand;
 use ArielMejiaDev\Atlas\Listeners\GeocodeOnCreated;
+use ArielMejiaDev\Atlas\Listeners\GeocodeOnUpdated;
 use ArielMejiaDev\Atlas\Support\Normalizer;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,10 +37,16 @@ class AtlasServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/atlas.php' => config_path('atlas.php'),
             ], 'atlas-config');
+
+            $this->publishes([
+                __DIR__.'/../database/migrations' => database_path('migrations'),
+            ], 'atlas-migrations');
 
             $this->commands([
                 InstallCommand::class,
@@ -48,11 +55,24 @@ class AtlasServiceProvider extends ServiceProvider
         }
 
         if (config('atlas.listener.enabled')) {
-            $modelClass = config('atlas.model');
-            if ($modelClass && class_exists($modelClass)) {
+            $models = config('atlas.listener.models', []);
+
+            foreach ($models as $modelClass) {
+                if (! class_exists($modelClass)) {
+                    continue;
+                }
+
                 $modelClass::created(function ($model) {
                     GeocodeOnCreated::dispatch($model);
                 });
+
+                if (config('atlas.listener.on_update', true)) {
+                    $modelClass::updated(function ($model) {
+                        if (method_exists($model, 'addressFieldsChanged') && $model->addressFieldsChanged()) {
+                            GeocodeOnUpdated::dispatch($model);
+                        }
+                    });
+                }
             }
         }
     }

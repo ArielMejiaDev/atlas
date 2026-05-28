@@ -10,6 +10,24 @@ composer require arielmejiadev/atlas
 
 The service provider is auto-discovered — no manual registration needed.
 
+## Run Migrations
+
+Atlas ships with a migration for its `atlas_coordinates` table. Run it alongside your app migrations:
+
+```bash
+php artisan migrate
+```
+
+This creates the `atlas_coordinates` polymorphic table where coordinates are stored for all your models.
+
+::: tip Customizing the Migration
+If you need to modify the migration, publish it first:
+
+```bash
+php artisan vendor:publish --tag=atlas-migrations
+```
+:::
+
 ## Build the Database
 
 Atlas ships without the ~22 MB geocoding database to keep the Composer package small. Build it with:
@@ -42,14 +60,22 @@ php artisan atlas:install --force
 php artisan vendor:publish --tag=atlas-config
 ```
 
-This creates `config/atlas.php` where you can customize:
+This creates `config/atlas.php` where you can customize the database path, connection settings, and auto-geocoding listener. See the [Configuration Reference](/reference/configuration) for all options.
 
-- Database path and connection name
-- Model class for backfilling
-- Column name mappings
-- Auto-geocoding listener settings
+## Add the Trait to Your Model
 
-See the [Configuration Reference](/reference/configuration) for all options.
+Add `HasCoordinates` to any model that holds address data:
+
+```php
+use ArielMejiaDev\Atlas\Concerns\HasCoordinates;
+
+class Address extends Model
+{
+    use HasCoordinates;
+}
+```
+
+If your model uses the standard column names (`address`, `city`, `state`, `zip`, `country`), it works out of the box. For custom column names, see [Usage](/guide/usage).
 
 ## Quick Test
 
@@ -73,4 +99,14 @@ $result->longitude; // -99.6393
 $result->method;    // 'us_zip'
 ```
 
-If you see coordinates, Atlas is working. Head to [Usage](/guide/usage) to learn more.
+Or geocode directly on a model:
+
+```php
+$address = Address::find(1);
+$coordinate = $address->geocode();
+
+$coordinate->latitude;  // 41.4019
+$coordinate->longitude; // -99.6393
+```
+
+If you see coordinates, Atlas is working. Head to [Basic Usage](/guide/basic-usage) for common patterns and real-world examples.

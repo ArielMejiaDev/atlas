@@ -2,26 +2,27 @@
 
 namespace ArielMejiaDev\Atlas\Console;
 
+use ArielMejiaDev\Atlas\Concerns\HasCoordinates;
 use ArielMejiaDev\Atlas\OfflineGeocoder;
 use Illuminate\Console\Command;
 
 class BackfillCommand extends Command
 {
     protected $signature = 'atlas:backfill
-        {--model= : Fully qualified model class}
+        {--model= : Fully qualified model class (must use HasCoordinates trait)}
         {--chunk=500 : Number of records to process per chunk}
         {--id= : Process only this specific record ID}
         {--dry-run : Show what would be geocoded without saving}
-        {--force : Re-geocode even when lat/lng are already set}';
+        {--force : Re-geocode even when coordinates already exist}';
 
-    protected $description = 'Backfill latitude/longitude on existing records';
+    protected $description = 'Backfill coordinates on existing records';
 
     public function handle(OfflineGeocoder $geocoder): int
     {
-        $modelClass = $this->option('model') ?: config('atlas.model');
+        $modelClass = $this->option('model');
 
         if (! $modelClass) {
-            $this->error('No model class specified. Use --model= or set atlas.model in config.');
+            $this->error('Please specify a model class with --model=');
 
             return self::FAILURE;
         }
@@ -32,11 +33,12 @@ class BackfillCommand extends Command
             return self::FAILURE;
         }
 
-        $columns = config('atlas.columns', []);
-        $latCol = $columns['latitude'] ?? 'latitude';
-        $lngCol = $columns['longitude'] ?? 'longitude';
-        $addressCol = $columns['address'] ?? 'address';
-        $deletedAtCol = $columns['deleted_at'] ?? 'deleted_at';
+        if (! in_array(HasCoordinates::class, class_uses_recursive($modelClass))) {
+            $this->error("Model must use the HasCoordinates trait: $modelClass");
+
+            return self::FAILURE;
+        }
+
         $force = $this->option('force');
         $dryRun = $this->option('dry-run');
         $chunkSize = (int) $this->option('chunk');
@@ -44,8 +46,8 @@ class BackfillCommand extends Command
 
         $query = $modelClass::query();
 
-        // Include soft-deleted records if column is configured
-        if ($deletedAtCol !== null && method_exists($modelClass, 'withTrashed')) {
+        // Include soft-deleted records when available
+        if (method_exists($modelClass, 'withTrashed')) {
             $query->withTrashed();
         }
 
@@ -56,9 +58,7 @@ class BackfillCommand extends Command
 
         // Skip already-geocoded unless --force
         if (! $force) {
-            $query->where(function ($q) use ($latCol, $lngCol) {
-                $q->whereNull($latCol)->orWhereNull($lngCol);
-            });
+            $query->whereDoesntHave('coordinates');
         }
 
         $total = $query->count();
@@ -78,15 +78,10 @@ class BackfillCommand extends Command
         $missed = 0;
 
         $query->chunkById($chunkSize, function ($records) use (
-            $geocoder, $columns, $latCol, $lngCol,
-            $dryRun, &$methods, &$geocoded, &$missed, $bar
+            $geocoder, $dryRun, $force, &$methods, &$geocoded, &$missed, $bar
         ) {
             foreach ($records as $model) {
-                $input = [];
-                foreach (['address', 'city', 'state', 'zip', 'country'] as $key) {
-                    $col = $columns[$key] ?? $key;
-                    $input[$key] = (string) ($model->{$col} ?? '');
-                }
+                $input = $model->toGeocodableArray();
 
                 $result = $geocoder->geocode($input);
 
@@ -95,10 +90,18 @@ class BackfillCommand extends Command
                     $geocoded++;
 
                     if (! $dryRun) {
-                        $model->forceFill([
-                            $latCol => $result->latitude,
-                            $lngCol => $result->longitude,
-                        ])->saveQuietly();
+                        $data = [
+                            'latitude' => $result->latitude,
+                            'longitude' => $result->longitude,
+                            'method' => $result->method,
+                            'geocoded_at' => now(),
+                        ];
+
+                        if ($force) {
+                            $model->coordinates()->updateOrCreate([], $data);
+                        } else {
+                            $model->coordinates()->create($data);
+                        }
                     }
                 } else {
                     $missed++;

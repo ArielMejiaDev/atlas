@@ -4,32 +4,27 @@ The `atlas:backfill` command geocodes existing records in your database in bulk.
 
 ## Basic Usage
 
-Set your model class in `config/atlas.php`:
-
-```php
-'model' => App\Models\Address::class,
-```
-
-Then run:
+Specify the model class to backfill:
 
 ```bash
-php artisan atlas:backfill
+php artisan atlas:backfill --model=App\\Models\\Address
 ```
 
-Atlas will:
-1. Query all records where `latitude` or `longitude` is `null`
-2. Geocode each record using the column mapping from config
-3. Save the results with `saveQuietly()` (won't re-fire the listener)
+The model must use the `HasCoordinates` trait. Atlas will:
+
+1. Query all records that don't have a coordinate record yet
+2. Geocode each record using the model's `toGeocodableArray()` method
+3. Save coordinates to the `atlas_coordinates` table
 4. Show a progress bar and method breakdown
 
 ## Options
 
 ### `--model`
 
-Override the model class from config:
+The fully qualified model class to backfill (required):
 
 ```bash
-php artisan atlas:backfill --model=App\\Models\\Location
+php artisan atlas:backfill --model=App\\Models\\Address
 ```
 
 ### `--chunk`
@@ -37,7 +32,7 @@ php artisan atlas:backfill --model=App\\Models\\Location
 Control how many records are loaded per database query (default: 500):
 
 ```bash
-php artisan atlas:backfill --chunk=1000
+php artisan atlas:backfill --model=App\\Models\\Address --chunk=1000
 ```
 
 ### `--id`
@@ -45,7 +40,7 @@ php artisan atlas:backfill --chunk=1000
 Geocode a single record by its primary key:
 
 ```bash
-php artisan atlas:backfill --id=42
+php artisan atlas:backfill --model=App\\Models\\Address --id=42
 ```
 
 ### `--force`
@@ -53,7 +48,7 @@ php artisan atlas:backfill --id=42
 Re-geocode all records, even those that already have coordinates:
 
 ```bash
-php artisan atlas:backfill --force
+php artisan atlas:backfill --model=App\\Models\\Address --force
 ```
 
 ### `--dry-run`
@@ -61,7 +56,7 @@ php artisan atlas:backfill --force
 Preview what would be geocoded without saving anything:
 
 ```bash
-php artisan atlas:backfill --dry-run
+php artisan atlas:backfill --model=App\\Models\\Address --dry-run
 ```
 
 ## Output
@@ -82,32 +77,18 @@ Method breakdown:
   city_partial: 15
 ```
 
-## Column Mapping
+## Multiple Models
 
-The backfill command reads column names from `config('atlas.columns')`. It never assumes your model uses columns named `address`, `city`, etc.
+Run the command once per model:
 
-```php
-'columns' => [
-    'address'   => 'street_address',
-    'city'      => 'city_name',
-    'state'     => 'region',
-    'zip'       => 'postal_code',
-    'country'   => 'country_name',
-    'latitude'  => 'lat',
-    'longitude' => 'lng',
-    'deleted_at' => null, // set to null if not soft-deletable
-],
+```bash
+php artisan atlas:backfill --model=App\\Models\\Address
+php artisan atlas:backfill --model=App\\Models\\Store
+php artisan atlas:backfill --model=App\\Models\\Warehouse
 ```
+
+Each model uses its own column mapping defined via `geocodableColumns()` or `toGeocodableArray()`.
 
 ## Soft Deletes
 
-If the configured `deleted_at` column exists and the model uses `SoftDeletes`, the backfill command will include soft-deleted records.
-
-Set `deleted_at` to `null` in config if your model doesn't use soft deletes:
-
-```php
-'columns' => [
-    // ...
-    'deleted_at' => null,
-],
-```
+If the model uses `SoftDeletes`, the backfill command automatically includes soft-deleted records.

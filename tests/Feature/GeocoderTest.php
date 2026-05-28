@@ -158,3 +158,41 @@ test('india heuristic with 6-digit postal code', function () {
     expect($r)->not->toBeNull();
     // Should detect as India via the 6-digit heuristic
 });
+
+test('geocodeBatch processes multiple inputs', function () {
+    $geocoder = app(OfflineGeocoder::class);
+
+    $results = $geocoder->geocodeBatch([
+        'us' => ['zip' => '68815', 'country' => 'US'],
+        'fr' => ['city' => 'Paris', 'country' => 'France'],
+        'empty' => ['address' => '', 'city' => '', 'country' => ''],
+    ]);
+
+    expect($results)->toHaveCount(3);
+    expect($results['us'])->not->toBeNull();
+    expect($results['us']->method)->toBe('us_zip');
+    expect($results['fr'])->not->toBeNull();
+    expect($results['fr']->method)->toBe('city_exact');
+    expect($results['empty'])->toBeNull();
+});
+
+test('geocodeBatch preserves numeric keys', function () {
+    $geocoder = app(OfflineGeocoder::class);
+
+    $results = $geocoder->geocodeBatch([
+        0 => ['zip' => '68815', 'country' => 'US'],
+        5 => ['city' => 'Paris', 'country' => 'France'],
+    ]);
+
+    expect($results)->toHaveKeys([0, 5]);
+    expect($results[0])->not->toBeNull();
+    expect($results[5])->not->toBeNull();
+});
+
+test('geocodeBatch returns empty array for empty input', function () {
+    $geocoder = app(OfflineGeocoder::class);
+
+    $results = $geocoder->geocodeBatch([]);
+
+    expect($results)->toBeEmpty();
+});

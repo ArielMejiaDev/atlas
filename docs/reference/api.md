@@ -38,11 +38,31 @@ Geocode an address. Returns a `Result` on success, `null` if no method matched.
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
-| `address` | `string` | Yes | Street address — returns `null` if empty |
+| `address` | `string` | No | Street address |
 | `city` | `string` | No | City name |
 | `state` | `string` | No | State/province |
 | `zip` | `string` | No | Postal/ZIP code |
 | `country` | `string` | No | Country name or ISO code |
+
+All keys are optional. At least one must be non-empty for the geocoder to attempt a lookup.
+
+### `geocodeBatch()`
+
+```php
+public function geocodeBatch(array $inputs): array
+```
+
+Geocode multiple inputs in a single call. Returns an array of `Result|null` with the same keys as the input array.
+
+Pre-warms the country aliases cache before processing, making batch operations more efficient.
+
+```php
+$results = $geocoder->geocodeBatch([
+    'a' => ['zip' => '68815', 'country' => 'US'],
+    'b' => ['city' => 'Paris', 'country' => 'France'],
+]);
+// $results['a'] → Result, $results['b'] → Result
+```
 
 ---
 
@@ -87,6 +107,113 @@ Returns the result as an associative array:
 
 ---
 
+## `Coordinate` Model
+
+Eloquent model for the `atlas_coordinates` polymorphic table.
+
+**Namespace:** `ArielMejiaDev\Atlas\Models\Coordinate`
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$latitude` | `float` | Latitude coordinate |
+| `$longitude` | `float` | Longitude coordinate |
+| `$method` | `?string` | Geocoding method that produced this result |
+| `$geocoded_at` | `?Carbon` | When the geocoding was performed |
+
+### Relationships
+
+```php
+public function coordinable(): MorphTo
+```
+
+Returns the parent model (the model that was geocoded).
+
+---
+
+## `HasCoordinates` Trait
+
+Trait for Eloquent models that need geocoding.
+
+**Namespace:** `ArielMejiaDev\Atlas\Concerns\HasCoordinates`
+
+### `coordinates()`
+
+```php
+public function coordinates(): MorphOne
+```
+
+Polymorphic relationship to the `Coordinate` model.
+
+### `geocode()`
+
+```php
+public function geocode(): ?Coordinate
+```
+
+Geocode this model and persist the result. Returns the `Coordinate` on success, `null` if geocoding failed. Calling it again on an already-geocoded model updates the existing coordinate.
+
+### `toGeocodableArray()`
+
+```php
+public function toGeocodableArray(): array
+```
+
+Build the geocoder input array. Default implementation reads from `geocodableColumns()`. Override for full control.
+
+### `geocodableColumns()`
+
+```php
+public function geocodableColumns(): array
+```
+
+Map canonical keys to actual column names. Default:
+
+```php
+[
+    'address' => 'address',
+    'city'    => 'city',
+    'state'   => 'state',
+    'zip'     => 'zip',
+    'country' => 'country',
+]
+```
+
+Override to map to your model's actual column names. Only include the keys your model has.
+
+### `addressFieldsChanged()`
+
+```php
+public function addressFieldsChanged(): bool
+```
+
+Returns `true` if any geocodable columns were modified on this model (uses Laravel's `wasChanged()`). Used by the auto-geocoding `updated` listener to decide whether to re-geocode.
+
+Override this method if you use `toGeocodableArray()` with non-standard columns that `geocodableColumns()` doesn't cover.
+
+### `distanceTo()`
+
+```php
+public function distanceTo(float $latitude, float $longitude): ?float
+```
+
+Calculate the distance in kilometers from this model's coordinates to a given point using the Haversine formula. Returns `null` if the model has no coordinates.
+
+### Query Scopes
+
+```php
+public function scopeGeocoded($query)
+public function scopeNotGeocoded($query)
+public function scopeWithinRadius($query, float $latitude, float $longitude, float $radiusKm)
+```
+
+- `geocoded()` — models that have a coordinate record
+- `notGeocoded()` — models missing coordinates
+- `withinRadius()` — models within a bounding box approximation of the given radius (works on all databases: MySQL, PostgreSQL, SQLite). Use `distanceTo()` for exact post-filtering.
+
+---
+
 ## `Normalizer`
 
 Shared text normalization used by both the runtime geocoder and the database builder.
@@ -126,13 +253,14 @@ Proxies to `OfflineGeocoder`. Available methods:
 
 ```php
 Atlas::geocode(array $input): ?Result
+Atlas::geocodeBatch(array $inputs): array
 ```
 
 ---
 
 ## `Geocodable` Interface
 
-Optional interface for host models.
+Optional interface for models. Satisfied by the `HasCoordinates` trait.
 
 **Namespace:** `ArielMejiaDev\Atlas\Contracts\Geocodable`
 
@@ -185,15 +313,48 @@ Queued job dispatched when a model is created (if listener is enabled).
 
 **Namespace:** `ArielMejiaDev\Atlas\Listeners\GeocodeOnCreated`
 
-Implements `ShouldQueue`. Configuration (queue, delay, tries) comes from `config('atlas.listener')`.
+Implements `ShouldQueue`. Configuration (queue, delay, tries) comes from `config('atlas.listener')`. Skips if coordinates already exist.
 
 ---
 
-## Database Schema
+## `GeocodeOnUpdated` Job
 
-The geocoding SQLite database contains these tables:
+Queued job dispatched when a model's address fields change (if listener is enabled and `on_update` is `true`).
 
-### `us_zip`
+**Namespace:** `ArielMejiaDev\Atlas\Listeners\GeocodeOnUpdated`
+
+Implements `ShouldQueue`. Configuration (queue, delay, tries) comes from `config('atlas.listener')`. Uses `updateOrCreate` to update existing coordinates or create new ones.
+
+The job is only dispatched when `addressFieldsChanged()` returns `true`, which is checked synchronously in the model event before queuing.
+
+---
+
+## Database Tables
+
+### `atlas_coordinates` (Package Table)
+
+Polymorphic table storing coordinates for all models:
+
+```sql
+CREATE TABLE atlas_coordinates (
+    id BIGINT UNSIGNED PRIMARY KEY,
+    coordinable_type VARCHAR NOT NULL,
+    coordinable_id BIGINT UNSIGNED NOT NULL,
+    latitude DECIMAL(10, 7) NOT NULL,
+    longitude DECIMAL(10, 7) NOT NULL,
+    method VARCHAR NULL,
+    geocoded_at TIMESTAMP NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    UNIQUE (coordinable_type, coordinable_id)
+);
+```
+
+### Geocoding SQLite Tables
+
+The geocoding SQLite database contains these lookup tables:
+
+#### `us_zip`
 
 ```sql
 CREATE TABLE us_zip (
@@ -205,7 +366,7 @@ CREATE TABLE us_zip (
 );
 ```
 
-### `us_city_state`
+#### `us_city_state`
 
 ```sql
 CREATE TABLE us_city_state (
@@ -217,7 +378,7 @@ CREATE TABLE us_city_state (
 );
 ```
 
-### `cities`
+#### `cities`
 
 ```sql
 CREATE TABLE cities (
@@ -231,7 +392,7 @@ CREATE TABLE cities (
 CREATE INDEX idx_cities_cc ON cities(country_code);
 ```
 
-### `country_aliases`
+#### `country_aliases`
 
 ```sql
 CREATE TABLE country_aliases (
@@ -240,7 +401,7 @@ CREATE TABLE country_aliases (
 );
 ```
 
-### `country_centroids`
+#### `country_centroids`
 
 ```sql
 CREATE TABLE country_centroids (
@@ -251,7 +412,7 @@ CREATE TABLE country_centroids (
 );
 ```
 
-### `big_cities_global`
+#### `big_cities_global`
 
 ```sql
 CREATE TABLE big_cities_global (

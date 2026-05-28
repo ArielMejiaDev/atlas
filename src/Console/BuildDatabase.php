@@ -268,9 +268,6 @@ class BuildDatabase
         }
     }
 
-    /**
-     * @return void
-     */
     private function importCities(PDO $pdo, string $filePath): void
     {
         // We use INSERT OR REPLACE with a subquery to keep highest population

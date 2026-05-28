@@ -14,6 +14,14 @@ Fills `latitude` and `longitude` on any Eloquent model from a bundled SQLite dat
 composer require arielmejiadev/atlas
 ```
 
+## Run Migrations
+
+```bash
+php artisan migrate
+```
+
+This creates the `atlas_coordinates` polymorphic table where coordinates are stored.
+
 ## Build the Database
 
 Atlas ships without the ~22 MB geocoding database. Build it at install time:
@@ -45,19 +53,11 @@ return [
     'database_path' => database_path('geocoding.sqlite'),
     'connection_name' => 'atlas',
     'manage_connection' => true,
-    'model' => env('ATLAS_MODEL'), // Your address model class
-    'columns' => [
-        'address' => 'address',
-        'city' => 'city',
-        'state' => 'state',
-        'zip' => 'zip',
-        'country' => 'country',
-        'latitude' => 'latitude',
-        'longitude' => 'longitude',
-        'deleted_at' => 'deleted_at',
-    ],
     'listener' => [
         'enabled' => false,
+        'models' => [
+            // App\Models\Address::class,
+        ],
         'queue' => null,
         'delay' => 2,
         'tries' => 3,
@@ -66,6 +66,28 @@ return [
 ```
 
 ## Usage
+
+### Add the Trait
+
+```php
+use ArielMejiaDev\Atlas\Concerns\HasCoordinates;
+
+class Address extends Model
+{
+    use HasCoordinates;
+}
+```
+
+### Geocode a Model
+
+```php
+$address = Address::find(1);
+$coordinate = $address->geocode();
+
+$coordinate->latitude;   // 41.4019
+$coordinate->longitude;  // -99.6393
+$coordinate->method;     // 'us_zip'
+```
 
 ### Facade
 
@@ -79,12 +101,6 @@ $result = Atlas::geocode([
     'zip' => '68815',
     'country' => 'US',
 ]);
-
-if ($result) {
-    echo $result->latitude;   // 41.4019
-    echo $result->longitude;  // -99.6393
-    echo $result->method;     // 'us_zip'
-}
 ```
 
 ### Dependency Injection
@@ -99,17 +115,88 @@ public function store(Request $request, OfflineGeocoder $geocoder)
 }
 ```
 
+## Column Mapping
+
+Each model controls its own mapping. Four patterns are supported:
+
+### Standard Columns (Zero Config)
+
+```php
+class Address extends Model
+{
+    use HasCoordinates;
+    // Works if you have: address, city, state, zip, country columns
+}
+```
+
+### Custom Column Names
+
+```php
+class Store extends Model
+{
+    use HasCoordinates;
+
+    public function geocodableColumns(): array
+    {
+        return [
+            'address' => 'store_address',
+            'city'    => 'store_city',
+            'state'   => 'province',
+            'zip'     => 'postal_code',
+            'country' => 'country_name',
+        ];
+    }
+}
+```
+
+### Partial Data
+
+```php
+class Venue extends Model
+{
+    use HasCoordinates;
+
+    public function geocodableColumns(): array
+    {
+        return [
+            'city'    => 'venue_city',
+            'country' => 'venue_country',
+        ];
+    }
+}
+```
+
+### Single Column / Full Control
+
+```php
+class Contact extends Model
+{
+    use HasCoordinates;
+
+    public function toGeocodableArray(): array
+    {
+        return [
+            'address' => $this->full_address ?? '',
+            'city'    => '',
+            'state'   => '',
+            'zip'     => '',
+            'country' => '',
+        ];
+    }
+}
+```
+
 ## Backfill Command
 
 Geocode existing records in bulk:
 
 ```bash
-php artisan atlas:backfill
 php artisan atlas:backfill --model=App\\Models\\Address
-php artisan atlas:backfill --chunk=1000
-php artisan atlas:backfill --force      # re-geocode all
-php artisan atlas:backfill --dry-run    # preview without saving
-php artisan atlas:backfill --id=42      # single record
+php artisan atlas:backfill --model=App\\Models\\Store
+php artisan atlas:backfill --model=App\\Models\\Address --chunk=1000
+php artisan atlas:backfill --model=App\\Models\\Address --force      # re-geocode all
+php artisan atlas:backfill --model=App\\Models\\Address --dry-run    # preview without saving
+php artisan atlas:backfill --model=App\\Models\\Address --id=42      # single record
 ```
 
 ## Auto-Geocode on Create (Listener)
@@ -118,9 +205,12 @@ Opt in via config:
 
 ```php
 // config/atlas.php
-'model' => App\Models\Address::class,
 'listener' => [
     'enabled' => true,
+    'models' => [
+        App\Models\Address::class,
+        App\Models\Store::class,
+    ],
     'queue' => 'default',
     'delay' => 2,
     'tries' => 3,
@@ -128,25 +218,6 @@ Opt in via config:
 ```
 
 New records are automatically geocoded via a queued job.
-
-### Alternative: Manual Observer
-
-```php
-// app/Observers/AddressObserver.php
-use ArielMejiaDev\Atlas\Facades\Atlas;
-
-public function created(Address $address): void
-{
-    $result = Atlas::geocode($address->only('address', 'city', 'state', 'zip', 'country'));
-
-    if ($result) {
-        $address->forceFill([
-            'latitude' => $result->latitude,
-            'longitude' => $result->longitude,
-        ])->saveQuietly();
-    }
-}
-```
 
 ## Geocoding Methods
 
@@ -163,26 +234,6 @@ Atlas tries methods in order and returns on the first hit:
 | 7 | `text_extract_city` | Detects country from text, finds city |
 | 8 | `text_extract_country_centroid` | Detected country's center |
 | 9 | `global_big_city_match` | Last resort: matches big cities globally |
-
-## Geocodable Interface (Optional)
-
-```php
-use ArielMejiaDev\Atlas\Contracts\Geocodable;
-
-class Address extends Model implements Geocodable
-{
-    public function toGeocodableArray(): array
-    {
-        return [
-            'address' => $this->street,
-            'city' => $this->city,
-            'state' => $this->state,
-            'zip' => $this->postal_code,
-            'country' => $this->country_name,
-        ];
-    }
-}
-```
 
 ## Requirements
 

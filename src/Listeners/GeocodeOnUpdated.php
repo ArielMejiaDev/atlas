@@ -12,7 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class GeocodeOnCreated implements ShouldQueue
+class GeocodeOnUpdated implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -34,11 +34,6 @@ class GeocodeOnCreated implements ShouldQueue
             return;
         }
 
-        // Skip if already geocoded
-        if ($model->coordinates()->exists()) {
-            return;
-        }
-
         $input = $model->toGeocodableArray();
 
         // Skip if all input values are empty
@@ -50,7 +45,7 @@ class GeocodeOnCreated implements ShouldQueue
             $result = $geocoder->geocode($input);
 
             if ($result !== null) {
-                $model->coordinates()->create([
+                $model->coordinates()->updateOrCreate([], [
                     'latitude' => $result->latitude,
                     'longitude' => $result->longitude,
                     'method' => $result->method,
@@ -59,7 +54,7 @@ class GeocodeOnCreated implements ShouldQueue
 
                 AddressGeocoded::dispatch($model, $result);
             } else {
-                Log::warning('Atlas: geocode returned null', [
+                Log::warning('Atlas: re-geocode on update returned null', [
                     'model' => get_class($model),
                     'id' => $model->getKey(),
                 ]);

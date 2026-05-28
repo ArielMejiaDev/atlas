@@ -24,8 +24,8 @@ features:
     title: Fast
     details: SQLite lookups are sub-millisecond. Backfill thousands of records in seconds with the built-in Artisan command.
   - icon: "\U0001F527"
-    title: Zero Config
-    details: Install the package, build the database, and start geocoding. Column names, model classes, and connection settings are all configurable.
+    title: Multi-Model
+    details: Geocode any number of models with different schemas. Each model defines its own column mapping via a simple trait.
   - icon: "\U0001F30D"
     title: Global Coverage
     details: Ships with world cities (population 15k+), US ZIP codes, and country centroids sourced from GeoNames.

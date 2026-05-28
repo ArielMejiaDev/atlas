@@ -17,18 +17,39 @@ class OfflineGeocoder implements GeocoderDriver
         private array $config = [],
     ) {}
 
+    /**
+     * Geocode multiple inputs in a single call.
+     *
+     * Array keys are preserved so callers can map results back to inputs.
+     *
+     * @param  array<int|string, array>  $inputs
+     * @return array<int|string, Result|null>
+     */
+    public function geocodeBatch(array $inputs): array
+    {
+        $this->getCountryAliases();
+
+        $results = [];
+
+        foreach ($inputs as $key => $input) {
+            $results[$key] = $this->geocode($input);
+        }
+
+        return $results;
+    }
+
     public function geocode(array $input): ?Result
     {
         $address = trim($input['address'] ?? '');
-
-        if ($address === '') {
-            return null;
-        }
-
         $city = trim($input['city'] ?? '');
         $state = trim($input['state'] ?? '');
         $zip = trim($input['zip'] ?? '');
         $country = trim($input['country'] ?? '');
+
+        // Need at least something to geocode
+        if ($address === '' && $city === '' && $state === '' && $zip === '' && $country === '') {
+            return null;
+        }
 
         $usCountryNames = $this->config['us_country_names'] ?? [
             'United States of America (the)',

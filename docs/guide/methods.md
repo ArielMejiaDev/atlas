@@ -16,7 +16,7 @@ Atlas uses a cascading strategy — it tries methods in a fixed order and return
 | 8 | `text_extract_country_centroid` | Country detected but city not found | Capital/largest city |
 | 9 | `global_big_city_match` | No country — matches big city names | City centroid |
 
-## US Path (Methods 1–2)
+## US Path (Methods 1-2)
 
 These only run when the `country` field matches one of the configured US country names (e.g., `"US"`, `"USA"`, `"United States"`).
 
@@ -28,7 +28,7 @@ Splits the ZIP on `-`, left-pads to 5 digits, and looks it up in the `us_zip` ta
 
 Normalizes the city name and uppercases the state, then queries the `us_city_state` table. Falls through if ZIP was provided but didn't match (mistyped ZIP).
 
-## International Path (Methods 3–6)
+## International Path (Methods 3-6)
 
 These run for any country that can be resolved to an ISO code via the `country_aliases` table. Also runs as a fallback when the US path misses.
 
@@ -52,7 +52,7 @@ Fetches up to 50 candidates ordered by population, then picks the one whose name
 
 Falls back to the country's centroid — typically the capital city's coordinates, or the largest city if the capital isn't in the database.
 
-## Text Mining (Methods 7–8)
+## Text Mining (Methods 7-8)
 
 These run when the `country` field is empty or can't be resolved. Atlas concatenates all input fields into a single text blob and tries to detect the country.
 
@@ -77,16 +77,16 @@ Tokenizes the entire input blob (tokens with 3+ characters) and queries the `big
 
 ## Understanding the `method` Field
 
-The `method` field in the `Result` object tells you which strategy resolved the address. Use it for:
+The `method` field in the `Result` object (and stored on the `Coordinate` model) tells you which strategy resolved the address. Use it for:
 
 - **Quality assessment** — `us_zip` and `city_exact` are high confidence; `country_centroid` and `global_big_city_match` are low
 - **Analytics** — track which methods fire most often to understand your data quality
 - **Debugging** — when results look wrong, the method tells you where the algorithm landed
 
 ```php
-$result = Atlas::geocode($input);
+$coordinate = $address->geocode();
 
-match ($result?->method) {
+match ($coordinate?->method) {
     'us_zip', 'us_city_state', 'city_exact' => 'high confidence',
     'state_as_city', 'city_partial', 'text_extract_city' => 'medium confidence',
     'country_centroid', 'text_extract_country_centroid', 'global_big_city_match' => 'low confidence',

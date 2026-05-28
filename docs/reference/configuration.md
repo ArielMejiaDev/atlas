@@ -14,6 +14,8 @@ php artisan vendor:publish --tag=atlas-config
 return [
     // Path to the SQLite file the package reads from.
     // Built by `php artisan atlas:install`.
+    // This database is read-only at runtime, so concurrent queue workers
+    // and web requests can safely share the same file without contention.
     'database_path' => database_path('geocoding.sqlite'),
 
     // Name of the database connection Atlas registers at runtime.
@@ -24,29 +26,21 @@ return [
     // Set to false if you want to define the connection yourself.
     'manage_connection' => true,
 
-    // The model class used by atlas:backfill and the auto-geocoding listener.
-    // Can also be overridden with --model= on the backfill command.
-    'model' => env('ATLAS_MODEL'),
-
-    // Column mapping. Keys are the canonical names Atlas expects.
-    // Values are the actual column names on your model.
-    'columns' => [
-        'address'    => 'address',
-        'city'       => 'city',
-        'state'      => 'state',
-        'zip'        => 'zip',
-        'country'    => 'country',
-        'latitude'   => 'latitude',
-        'longitude'  => 'longitude',
-        'deleted_at' => 'deleted_at', // null if model isn't soft-deletable
-    ],
-
-    // Listener configuration for auto-geocoding new records.
+    // Listener configuration for auto-geocoding records.
     'listener' => [
-        'enabled' => false,     // Set to true to auto-geocode on Model::created
-        'queue'   => null,      // Queue connection name; null = default
-        'delay'   => 2,         // Seconds to wait before the job runs
-        'tries'   => 3,         // Number of retry attempts
+        'enabled' => false,           // Set to true to auto-geocode
+
+        // Model classes to auto-geocode.
+        // Each must use the HasCoordinates trait.
+        'models' => [
+            // App\Models\Address::class,
+            // App\Models\Store::class,
+        ],
+
+        'on_update' => true,          // Re-geocode when address fields change
+        'queue'     => null,           // Queue connection name; null = default
+        'delay'     => 2,              // Seconds to wait before the job runs
+        'tries'     => 3,              // Number of retry attempts
     ],
 
     // Country strings treated as US for the us_zip and us_city_state methods.
@@ -83,21 +77,6 @@ The name of the database connection Atlas registers. You can query it directly w
 
 When `true`, Atlas automatically registers a SQLite database connection using `database_path`. Set to `false` if you want to define the connection manually in `config/database.php`.
 
-### `model`
-
-- **Type:** `string|null`
-- **Default:** `env('ATLAS_MODEL')`
-
-Fully qualified class name of the Eloquent model used by the backfill command and auto-geocoding listener. Can be overridden per-command with `--model=`.
-
-### `columns`
-
-- **Type:** `array`
-
-Maps canonical column names to your model's actual column names. Atlas never assumes column names — it always reads from this mapping.
-
-Set `deleted_at` to `null` if your model doesn't use soft deletes.
-
 ### `listener`
 
 - **Type:** `array`
@@ -106,7 +85,9 @@ Controls the auto-geocoding listener. See [Auto-Geocoding](/guide/auto-geocoding
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `enabled` | `bool` | `false` | Enable auto-geocoding on `Model::created` |
+| `enabled` | `bool` | `false` | Enable auto-geocoding on `Model::created` and `Model::updated` |
+| `models` | `array` | `[]` | Model classes to auto-geocode (must use `HasCoordinates` trait) |
+| `on_update` | `bool` | `true` | Re-geocode when address fields change on update |
 | `queue` | `string\|null` | `null` | Queue connection name |
 | `delay` | `int` | `2` | Seconds before the job runs |
 | `tries` | `int` | `3` | Number of retry attempts |
@@ -118,8 +99,29 @@ Controls the auto-geocoding listener. See [Auto-Geocoding](/guide/auto-geocoding
 
 List of country strings that should trigger the US-specific geocoding path (`us_zip` and `us_city_state`). Add your own variants if your data uses non-standard country names.
 
-## Environment Variables
+## Column Mapping
 
-| Variable | Config Key | Description |
-|----------|-----------|-------------|
-| `ATLAS_MODEL` | `atlas.model` | Default model class for backfill |
+Column mapping is **per-model**, not in the config file. Each model that uses the `HasCoordinates` trait controls its own mapping:
+
+```php
+use ArielMejiaDev\Atlas\Concerns\HasCoordinates;
+
+class Store extends Model
+{
+    use HasCoordinates;
+
+    // Override for custom column names
+    public function geocodableColumns(): array
+    {
+        return [
+            'address' => 'store_address',
+            'city'    => 'store_city',
+            'state'   => 'province',
+            'zip'     => 'postal_code',
+            'country' => 'country_name',
+        ];
+    }
+}
+```
+
+See [Usage — Column Mapping](/guide/usage#column-mapping) for all four mapping patterns.

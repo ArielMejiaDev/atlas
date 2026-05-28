@@ -66,17 +66,17 @@ php artisan atlas:install --force
 
 ## `atlas:backfill`
 
-Backfill latitude/longitude on existing records.
+Backfill coordinates on existing records using the `atlas_coordinates` table.
 
 ```bash
-php artisan atlas:backfill [options]
+php artisan atlas:backfill --model=CLASS [options]
 ```
 
 ### Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--model=CLASS` | Config value | Fully qualified model class |
+| `--model=CLASS` | — | Fully qualified model class (required, must use `HasCoordinates` trait) |
 | `--chunk=N` | `500` | Records per database query |
 | `--id=N` | — | Process a single record by ID |
 | `--dry-run` | — | Preview without saving |
@@ -85,23 +85,24 @@ php artisan atlas:backfill [options]
 ### Examples
 
 ```bash
-# Basic backfill using config model
-php artisan atlas:backfill
-
-# Specify model
+# Backfill a model
 php artisan atlas:backfill --model=App\\Models\\Address
 
+# Multiple models
+php artisan atlas:backfill --model=App\\Models\\Address
+php artisan atlas:backfill --model=App\\Models\\Store
+
 # Larger chunks for faster processing
-php artisan atlas:backfill --chunk=2000
+php artisan atlas:backfill --model=App\\Models\\Address --chunk=2000
 
 # Single record
-php artisan atlas:backfill --id=42
+php artisan atlas:backfill --model=App\\Models\\Address --id=42
 
 # Preview
-php artisan atlas:backfill --dry-run
+php artisan atlas:backfill --model=App\\Models\\Address --dry-run
 
 # Re-geocode everything
-php artisan atlas:backfill --force
+php artisan atlas:backfill --model=App\\Models\\Address --force
 ```
 
 ### Output
@@ -122,9 +123,9 @@ Method breakdown:
 
 ### Behavior
 
-- Reads model class from `--model` or `config('atlas.model')`
-- Uses the column mapping from config
-- Skips records that already have `latitude` and `longitude` (unless `--force`)
+- Requires `--model` flag — the model must use the `HasCoordinates` trait
+- Uses the model's `toGeocodableArray()` method for input
+- Writes coordinates to the `atlas_coordinates` polymorphic table
+- Skips records that already have a coordinate record (unless `--force`)
 - Includes soft-deleted records if the model uses `SoftDeletes`
-- Uses `saveQuietly()` to avoid re-triggering the auto-geocoding listener
 - Shows a progress bar with method breakdown on completion
