@@ -3,10 +3,10 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Atlas',
   description: 'Offline geocoder for Laravel — fills latitude/longitude from a bundled SQLite database, no API calls.',
-  base: '/atlas-docs/',
+  base: '/atlas/',
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/atlas-docs/logo.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/atlas/logo.svg' }],
   ],
 
   themeConfig: {
